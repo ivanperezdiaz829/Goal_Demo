@@ -6,7 +6,7 @@ import * as CANNON from "cannon-es";
 // -------------------------------------------------
 // CONFIGURACIÓN GLOBAL
 // -------------------------------------------------
-const MAX_BALLS = 5;
+const MAX_BALLS = 10;
 const MAP_SIZE = 26;
 const WALL_HEIGHT = 9;
 
@@ -17,9 +17,18 @@ const POST_THICKNESS = 0.2;
 const GOAL_Z_POS = -7; 
 const NET_DEPTH = 4; 
 
-// Variables de Movimiento
-const PLAYER_SPEED = 10;
-const JUMP_FORCE = 5;
+// [NUEVO] MARCADOR
+let score = 0;
+
+// Configuración del Portero (MÁS GRANDE)
+const GOALKEEPER_SPEED = 3.0; 
+const GOALKEEPER_RANGE = 3.0; 
+const KEEPER_SCALE = 0.017; 
+const KEEPER_PHYSICS_SIZE = new CANNON.Vec3(1.0, 1.8, 0.5); 
+
+// Variables de Movimiento Jugador
+const PLAYER_SPEED = 12; 
+const JUMP_FORCE = 6;
 
 // -------------------------------------------------
 // 1. ESCENA Y CÁMARA
@@ -79,7 +88,7 @@ const netTextureBack = createProceduralNetTexture(10, 5);
 const netTextureSide = createProceduralNetTexture(4, 5); 
 const netTextureTop = createProceduralNetTexture(10, 4);
 
-// --- MATERIALES ---
+// --- MATERIALES VISUALES ---
 const wallVisualMaterial = new THREE.MeshStandardMaterial({
     map: concreteTexture, roughness: 0.9, metalness: 0.1
 });
@@ -100,8 +109,6 @@ const netMatTop  = createNetMaterial(netTextureTop);
 
 // Cámara
 const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 500);
-// Ya no seteamos la posición de la cámara manualmente aquí, 
-// la cámara seguirá al cuerpo físico del jugador.
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
@@ -110,16 +117,37 @@ document.body.appendChild(renderer.domElement);
 
 const controls = new PointerLockControls(camera, document.body);
 
+// --- INTERFAZ UI ---
+
+// 1. Instrucciones
 const info = document.createElement('div');
 info.style.position = 'absolute';
-info.style.top = '10px';
-info.style.width = '100%';
+info.style.top = '50%';
+info.style.left = '50%';
+info.style.transform = 'translate(-50%, -50%)';
 info.style.textAlign = 'center';
 info.style.color = '#fff';
+info.style.backgroundColor = 'rgba(0,0,0,0.5)';
+info.style.padding = '20px';
+info.style.borderRadius = '10px';
 info.style.fontFamily = 'sans-serif';
+info.style.fontSize = '20px';
 info.style.pointerEvents = 'none'; 
-info.innerHTML = '<b>Click para Jugar</b><br>WASD: Moverse | ESPACIO: Saltar | Click: Disparar';
+info.innerHTML = '<b>HAZ CLICK EN LA PANTALLA PARA JUGAR</b><br><br>WASD: Moverse | ESPACIO: Saltar | Click: Disparar';
 document.body.appendChild(info);
+
+// 2. [NUEVO] Marcador de Goles
+const scoreDiv = document.createElement('div');
+scoreDiv.style.position = 'absolute';
+scoreDiv.style.top = '20px';
+scoreDiv.style.right = '30px';
+scoreDiv.style.color = '#00ff00';
+scoreDiv.style.fontFamily = 'Impact, sans-serif';
+scoreDiv.style.fontSize = '40px';
+scoreDiv.style.pointerEvents = 'none';
+scoreDiv.style.textShadow = '2px 2px 0 #000';
+scoreDiv.innerHTML = 'GOLES: 0';
+document.body.appendChild(scoreDiv);
 
 controls.addEventListener('lock', () => { info.style.display = 'none'; });
 controls.addEventListener('unlock', () => { info.style.display = 'block'; });
@@ -138,7 +166,7 @@ scene.add(dirLight);
 // 2. MUNDO FÍSICO
 // -------------------------------------------------
 const world = new CANNON.World({
-    gravity: new CANNON.Vec3(0, -15, 0) // Gravedad un poco más fuerte para saltos rápidos
+    gravity: new CANNON.Vec3(0, -15, 0)
 });
 world.broadphase = new CANNON.SAPBroadphase(world);
 world.allowSleep = true;
@@ -146,7 +174,6 @@ world.allowSleep = true;
 // Materiales Físicos
 const groundMaterial = new CANNON.Material("ground");
 const ballMaterial = new CANNON.Material("ball");
-// [NUEVO] Material resbaladizo para el jugador (Fricción 0 para que no se pegue a paredes)
 const playerPhysicsMaterial = new CANNON.Material("player");
 
 const ballGroundContact = new CANNON.ContactMaterial(groundMaterial, ballMaterial, {
@@ -154,10 +181,8 @@ const ballGroundContact = new CANNON.ContactMaterial(groundMaterial, ballMateria
 });
 world.addContactMaterial(ballGroundContact);
 
-// Contacto Jugador-Suelo (Sin fricción para deslizar suave, sin rebote)
 const playerGroundContact = new CANNON.ContactMaterial(groundMaterial, playerPhysicsMaterial, {
-    friction: 0.0, 
-    restitution: 0.0
+    friction: 0.0, restitution: 0.0
 });
 world.addContactMaterial(playerGroundContact);
 
@@ -170,22 +195,18 @@ let ballGeometry = null;
 // -------------------------------------------------
 const playerRadius = 0.8;
 const playerBody = new CANNON.Body({
-    mass: 70, // Peso humano
+    mass: 70, 
     material: playerPhysicsMaterial,
-    fixedRotation: true, // IMPORTANTE: Para que no ruede como una pelota
-    position: new CANNON.Vec3(0, 2, 10) // Posición inicial
+    fixedRotation: true, 
+    position: new CANNON.Vec3(0, 5, 10) 
 });
 const playerShape = new CANNON.Sphere(playerRadius);
 playerBody.addShape(playerShape);
-// Amortiguación para que no deslice eternamente al soltar teclas
 playerBody.linearDamping = 0.9; 
 world.addBody(playerBody);
 
-// Lógica de Salto
 let canJump = false;
-// Evento: cuando el jugador toca algo (el suelo)
 playerBody.addEventListener("collide", (e) => {
-    // Comprobamos si el contacto es con el suelo (normal hacia arriba)
     const contactNormal = new CANNON.Vec3();
     const contactEquation = e.contact.equations[0];
     if (contactEquation) {
@@ -194,13 +215,11 @@ playerBody.addEventListener("collide", (e) => {
         } else {
             contactNormal.copy(contactEquation.ni);
         }
-        // Si el contacto apunta hacia arriba (eje Y), es suelo
         if (contactNormal.dot(new CANNON.Vec3(0, 1, 0)) > 0.5) {
             canJump = true;
         }
     }
 });
-
 
 // -------------------------------------------------
 // 4. CONSTRUCCIÓN DEL MAPA
@@ -291,11 +310,42 @@ roofBody.quaternion.setFromEuler(Math.PI / 2, 0, 0);
 roofBody.position.y = WALL_HEIGHT;
 world.addBody(roofBody);
 
+// -------------------------------------------------
+// 5. PORTERO (IRONMAN)
+// -------------------------------------------------
+const keeperBody = new CANNON.Body({
+    mass: 0, 
+    type: CANNON.Body.KINEMATIC,
+    material: groundMaterial 
+});
+const keeperShape = new CANNON.Box(KEEPER_PHYSICS_SIZE);
+keeperBody.addShape(keeperShape);
+keeperBody.position.set(0, KEEPER_PHYSICS_SIZE.y, GOAL_Z_POS);
+world.addBody(keeperBody);
+
+const loader = new OBJLoader();
+let keeperMesh = null;
+
+loader.load('../IronMan.obj', (obj) => {
+    keeperMesh = obj;
+    keeperMesh.scale.set(KEEPER_SCALE, KEEPER_SCALE, KEEPER_SCALE); 
+    keeperMesh.position.set(0, 0, GOAL_Z_POS);
+    keeperMesh.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            child.material = new THREE.MeshStandardMaterial({ 
+                color: 0xff0000, roughness: 0.4, metalness: 0.8 
+            });
+        }
+    });
+    scene.add(keeperMesh);
+});
+
 
 // -------------------------------------------------
-// 5. CARGA DE PELOTA
+// 6. CARGA DE PELOTA Y DISPARO
 // -------------------------------------------------
-const loader = new OBJLoader();
 loader.load("../Ball.obj", (obj) => {
     obj.traverse((child) => {
         if (child.isMesh) {
@@ -308,7 +358,6 @@ loader.load("../Ball.obj", (obj) => {
 function shootBall() {
     if (!ballGeometry) return;
 
-    // 1. Gestión del límite de bolas
     if (balls.length >= MAX_BALLS) {
         const oldMesh = balls.shift();
         const oldBody = ballBodies.shift();
@@ -316,53 +365,43 @@ function shootBall() {
         if(oldMesh.material) oldMesh.material.dispose();
         world.removeBody(oldBody);
     }
-
-    // 2. Crear Malla Visual
     const material = new THREE.MeshStandardMaterial({ color: 0xffffff }); 
     const mesh = new THREE.Mesh(ballGeometry, material);
     mesh.scale.set(0.5, 0.5, 0.5); 
     mesh.castShadow = true;
+    
+    // [NUEVO] Propiedad para saber si esta bola ya ha marcado gol
+    mesh.userData = { scored: false };
+
     scene.add(mesh);
     balls.push(mesh);
-
-    // 3. Crear Cuerpo Físico
     const shape = new CANNON.Sphere(0.5); 
     const body = new CANNON.Body({ mass: 5, material: ballMaterial });
     body.ccdSpeedThreshold = 1; 
     body.ccdIterations = 2;     
     body.addShape(shape);
     
-    // --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
-    
-    // A. Obtenemos la dirección hacia donde mira la cámara
     const shootDirection = new THREE.Vector3();
     camera.getWorldDirection(shootDirection); 
 
-    // B. Calculamos la posición inicial
-    // Sumamos la posición de la cámara + (Dirección * Distancia)
-    // Usamos 1.5 unidades de distancia para asegurar que la pelota no choque con el cuerpo del jugador (radio 0.8)
     const spawnDistance = 1.5; 
     const spawnPos = new THREE.Vector3();
     spawnPos.copy(camera.position).add(shootDirection.clone().multiplyScalar(spawnDistance));
 
     body.position.copy(spawnPos);
 
-    // C. Aplicamos la velocidad
     const velocity = 35; 
     body.velocity.set(
         shootDirection.x * velocity,
         shootDirection.y * velocity,
         shootDirection.z * velocity
     );
-
-    // ----------------------------------
-
     world.addBody(body);
     ballBodies.push(body);
 }
 
 // -------------------------------------------------
-// 6. INPUTS (WASD + SALTO + DISPARO)
+// 7. INPUTS
 // -------------------------------------------------
 const input = {
     forward: false,
@@ -408,51 +447,81 @@ window.addEventListener('resize', () => {
 });
 
 // -------------------------------------------------
-// 7. ANIMACIÓN Y FÍSICA
+// 8. ANIMACIÓN Y BUCLE PRINCIPAL
 // -------------------------------------------------
 const clock = new THREE.Clock();
 
 function animate() {
     requestAnimationFrame(animate);
     const delta = Math.min(clock.getDelta(), 0.1);
+    const time = clock.getElapsedTime(); 
+
+    // --- ACTUALIZAR PORTERO ---
+    if (keeperBody) {
+        keeperBody.position.x = Math.sin(time * GOALKEEPER_SPEED) * GOALKEEPER_RANGE;
+
+        if (keeperMesh) {
+            keeperMesh.position.copy(keeperBody.position);
+            keeperMesh.position.y -= KEEPER_PHYSICS_SIZE.y; 
+            keeperMesh.quaternion.copy(keeperBody.quaternion);
+        }
+    }
     
-    // --- LÓGICA DE MOVIMIENTO FÍSICO ---
+    // --- ACTUALIZAR JUGADOR ---
     if (controls.isLocked) {
-        // 1. Obtenemos vectores locales de movimiento
         const inputVector = new THREE.Vector3(0, 0, 0);
         if (input.forward) inputVector.z -= 1;
         if (input.backward) inputVector.z += 1;
         if (input.left) inputVector.x -= 1;
         if (input.right) inputVector.x += 1;
-        inputVector.normalize();
-
-        // 2. Convertimos dirección local a dirección global basada en la cámara
-        // Para que si miramos a la derecha y pulsamos W, vayamos a la derecha
-        const euler = new THREE.Euler(0, camera.rotation.y, 0, 'YXZ');
-        const direction = inputVector.applyEuler(euler);
-
-        // 3. Aplicamos velocidad al cuerpo
-        // Mantenemos la velocidad Y (gravedad/salto), solo cambiamos X y Z
-        playerBody.velocity.x = direction.x * PLAYER_SPEED;
-        playerBody.velocity.z = direction.z * PLAYER_SPEED;
+        
+        if (inputVector.lengthSq() > 0) {
+            inputVector.normalize();
+            const euler = new THREE.Euler(0, camera.rotation.y, 0, 'YXZ');
+            const direction = inputVector.applyEuler(euler);
+            playerBody.velocity.x = direction.x * PLAYER_SPEED;
+            playerBody.velocity.z = direction.z * PLAYER_SPEED;
+        } else {
+            playerBody.velocity.x = 0;
+            playerBody.velocity.z = 0;
+        }
     }
 
     world.step(1/60, delta, 20);
 
     // --- SINCRONIZACIÓN ---
-    
-    // 1. La cámara sigue al cuerpo físico
     camera.position.copy(playerBody.position);
-    // Ajuste de altura de ojos (el cuerpo tiene radio 0.8, los ojos están un poco más arriba)
-    camera.position.y += 0.6; 
+    camera.position.y += 2.2; 
 
-    // 2. Balones
+    // --- [NUEVO] DETECTOR DE GOLES ---
     for (let i = 0; i < ballBodies.length; i++) {
-        balls[i].position.copy(ballBodies[i].position);
-        balls[i].quaternion.copy(ballBodies[i].quaternion);
-    }
+        const bBody = ballBodies[i];
+        const bMesh = balls[i];
+        
+        // Sincronizar posición visual
+        bMesh.position.copy(bBody.position);
+        bMesh.quaternion.copy(bBody.quaternion);
 
+        // Lógica de Gol:
+        // 1. No ha sido marcado antes
+        // 2. Ha cruzado la línea de portería en Z (GOAL_Z_POS - radio)
+        // 3. Está dentro del ancho de la portería (X)
+        // 4. Está debajo del larguero (Y)
+        if (!bMesh.userData.scored && 
+            bBody.position.z < GOAL_Z_POS - 0.5 && 
+            bBody.position.z > GOAL_Z_POS - NET_DEPTH && // Para no contar si sale por detrás
+            bBody.position.x > -GOAL_WIDTH/2 && 
+            bBody.position.x < GOAL_WIDTH/2 &&
+            bBody.position.y < GOAL_HEIGHT) {
+            
+            score++;
+            scoreDiv.innerHTML = 'GOLES: ' + score;
+            bMesh.userData.scored = true; // Marcar para no contarla 100 veces
+            
+            // Feedback visual: Cambiar color de la bola a verde
+            bMesh.material.color.setHex(0x00ff00);
+        }
+    }
     renderer.render(scene, camera);
 }
-
 animate();
