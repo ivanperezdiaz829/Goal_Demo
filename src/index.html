@@ -1,12 +1,16 @@
-<html>
+<!DOCTYPE html>
+<html lang="es">
     <head>
-        <title>Simulación 3D</title>
+        <title>Football_Demo</title>
         <meta charset="UTF-8"/>
+        <link rel="icon" type="image/x-icon" href="../resources/Football.ico"/>
+
         <style>
-            html,
-            body {
+            html, body {
                 margin: 0;
                 padding: 0;
+                overflow: hidden;
+                user-select: none;
             }               
         </style>
 
@@ -15,13 +19,14 @@
             "imports": {
                 "three": "https://unpkg.com/three@0.150.1/build/three.module.js",
                 "three/addons/": "https://unpkg.com/three@0.150.1/examples/jsm/",
-                "cannon-es": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
+                "cannon-es": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js",
+                "@tweenjs/tween.js": "https://unpkg.com/@tweenjs/tween.js@23.1.2/dist/tween.esm.js"
             }
         }
         </script>
-
-
     </head>
 
-    <script type="module" src="./script.js"></script>
+    <body>
+        <script type="module" src="./script.js"></script>
+    </body>
 </html>
