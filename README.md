@@ -7,7 +7,7 @@
 - [Dependencias](#dependencias)
 - [Controles](#controles)
 - [Vídeo de uso](#vídeo-de-uso)
-- [Fuentes y Documentación]()
+- [Fuentes y Documentación](#fuentes-y-documentación)
 
 ## Introducción
 
@@ -25,7 +25,7 @@ Como pilares fundamentales del proyecto se encuentran:
 
 ## Tecnologías utilizadas
 
-En el transcurso de la práctica se han utilizado variedad de tecnologías para llegar al objetivo propuesto.
+En el transcurso de la práctica se han utilizado diferentes tecnologías para llegar al objetivo propuesto:
 
 - **VSCode:** El proyecto se ha realizado enteramente desde dicho IDE.
 
@@ -63,19 +63,22 @@ En la siguiente imagen se puede acceder a un video corto de la demo en ejecució
 
 <h4 style="font-weight: bold; text-decoration: underline">Video de la demo:</h4>
 
+[![Ver en YouTube](https://img.youtube.com/vi/5W6GfEETG1Y/0.jpg)](https://www.youtube.com/watch?v=5W6GfEETG1Y)
 
 ## Fuentes y Documentación
 
-- **Internet:** Se ha utilizado internet para obtener las imágenes de las texturas así como buscar información sobre las lunas de los planetas (nombre y cantidad de cada planeta). Por otro lado, se ha utilizado **YouTube** para subir el vídeo explicativo del uso del sistema solar.
+- **Internet:** Se ha utilizado intenet de manera recurrente para buscar en diferentes páginas los modelos 3D utilizados a lo largo de todo el proyecto, las páginas en cuestión han sido las siguientes: [free3d.com](https://free3d.com/es/?dd_referrer=https%3A%2F%2Fwww.google.com%2F), https://makerworld.com/es/3d-models, https://www.freepik.es/modelos-3d. Adicionalmente, se ha utilizado internet para la documentación necesaria para el uso de la librería [Cannon.js](https://pmndrs.github.io/cannon-es/docs/) así como la documentación de [Tween.js](https://tweenjs.github.io/tween.js/docs/user_guide.html).
 
-- **Inteligencia Artificial Generativa (ChatGPT, Gemini):** Se ha utilizado la IA para generar varios planetas y lunas a partir de los ya creados (se pasa el método y los planetas a crear para ahorrar tiempo). Por otro lado, se ha hecho uso de la IA para documentarse acerca de las funciones que existen dentro de **three.js**.
+- **Inteligencia Artificial Generativa (ChatGPT, Gemini):** Se ha utilizado la Inteligencia Artifical generativa para generar la geometría entera de la portería y para modificar dimensiones de la geometría del mapa. De manera adicional, se ha utilizado la IA para buscar diversas opciones de optimización de una versión preeliminar que como se ha comentado antes, el problema era presuntamente el buscador utilizado. Mencionadas optimzaciones explican por sí mismas el cambio de **Ammo.js** a **Cannon.js**.
 
 - **Enlaces:**
-    - https://es.wikipedia.org/wiki/Anexo:Satélites_naturales_del_sistema_solar
+    - https://free3d.com/es/?dd_referrer=https%3A%2F%2Fwww.google.com%2F
+    - https://makerworld.com/es/3d-models
     - https://chatgpt.com/
     - https://youtube.com/
     - https://gemini.google.com
-    - https://spaceplace.nasa.gov/how-many-moons/sp/
+    - https://www.freepik.es/modelos-3d
+    - https://www.opera.com/es/gx/gx-browser-nb?utm_id=Cj0KCQiA_8TJBhDNARIsAPX5qxTbhzch2oOJgCJGOIT1RSOMt5gNBAC29gT7BwtFcyKHMax9fmXzxOgaAhLlEALw_wcB&utm_medium=pa&utm_source=google&utm_campaign=OGX_ES_Search_ES_T1_V2&utm_content=635460379197&gad_source=1&gad_campaignid=18948233713&gclid=Cj0KCQiA_8TJBhDNARIsAPX5qxTbhzch2oOJgCJGOIT1RSOMt5gNBAC29gT7BwtFcyKHMax9fmXzxOgaAhLlEALw_wcB
 
 
 <h4 style="text-weight: bold">--- Iván Pérez Díaz ---</h4>
