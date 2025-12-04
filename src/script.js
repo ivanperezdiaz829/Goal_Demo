@@ -17,18 +17,18 @@ const POST_THICKNESS = 0.2;
 const GOAL_Z_POS = -7; 
 const NET_DEPTH = 4; 
 
-// [NUEVO] MARCADOR
+// MARCADOR
 let score = 0;
 
-// Configuración del Portero (MÁS GRANDE)
-const GOALKEEPER_SPEED = 3.0; 
-const GOALKEEPER_RANGE = 3.0; 
-const KEEPER_SCALE = 0.017; 
+// Configuración del Portero
+const GOALKEEPER_SPEED = 5.5; 
+const GOALKEEPER_RANGE = 3; 
+const KEEPER_SCALE = 0.018; 
 const KEEPER_PHYSICS_SIZE = new CANNON.Vec3(1.0, 1.8, 0.5); 
 
 // Variables de Movimiento Jugador
 const PLAYER_SPEED = 12; 
-const JUMP_FORCE = 6;
+const JUMP_FORCE = 8; 
 
 // -------------------------------------------------
 // 1. ESCENA Y CÁMARA
@@ -39,19 +39,19 @@ scene.background = new THREE.Color(0x111111);
 const textureLoader = new THREE.TextureLoader();
 
 // A. TEXTURAS
-const grassTexture = textureLoader.load('../grass_texture.jpg');
+const grassTexture = textureLoader.load('../resources/textures/grass_texture.jpg');
 grassTexture.wrapS = THREE.RepeatWrapping;
 grassTexture.wrapT = THREE.RepeatWrapping;
 grassTexture.repeat.set(4, 4);
 grassTexture.colorSpace = THREE.SRGBColorSpace;
 
-const concreteTexture = textureLoader.load('../Concrete.jpg');
+const concreteTexture = textureLoader.load('../resources/textures/Concrete.jpg');
 concreteTexture.wrapS = THREE.RepeatWrapping;
 concreteTexture.wrapT = THREE.RepeatWrapping;
 concreteTexture.repeat.set(4, 2); 
 concreteTexture.colorSpace = THREE.SRGBColorSpace;
 
-const mapTexture = textureLoader.load('../metal.jpg');
+const mapTexture = textureLoader.load('../resources/textures/metal.jpg');
 mapTexture.wrapS = THREE.RepeatWrapping;
 mapTexture.wrapT = THREE.RepeatWrapping;
 mapTexture.repeat.set(1, 1);
@@ -118,8 +118,6 @@ document.body.appendChild(renderer.domElement);
 const controls = new PointerLockControls(camera, document.body);
 
 // --- INTERFAZ UI ---
-
-// 1. Instrucciones
 const info = document.createElement('div');
 info.style.position = 'absolute';
 info.style.top = '50%';
@@ -136,7 +134,7 @@ info.style.pointerEvents = 'none';
 info.innerHTML = '<b>HAZ CLICK EN LA PANTALLA PARA JUGAR</b><br><br>WASD: Moverse | ESPACIO: Saltar | Click: Disparar';
 document.body.appendChild(info);
 
-// 2. [NUEVO] Marcador de Goles
+// Marcador
 const scoreDiv = document.createElement('div');
 scoreDiv.style.position = 'absolute';
 scoreDiv.style.top = '20px';
@@ -171,7 +169,6 @@ const world = new CANNON.World({
 world.broadphase = new CANNON.SAPBroadphase(world);
 world.allowSleep = true;
 
-// Materiales Físicos
 const groundMaterial = new CANNON.Material("ground");
 const ballMaterial = new CANNON.Material("ball");
 const playerPhysicsMaterial = new CANNON.Material("player");
@@ -200,26 +197,17 @@ const playerBody = new CANNON.Body({
     fixedRotation: true, 
     position: new CANNON.Vec3(0, 5, 10) 
 });
+// [FIX] Evitamos que el cuerpo del jugador se "duerma" (deje de calcular físicas)
+playerBody.allowSleep = false; 
+
 const playerShape = new CANNON.Sphere(playerRadius);
 playerBody.addShape(playerShape);
 playerBody.linearDamping = 0.9; 
 world.addBody(playerBody);
 
-let canJump = false;
-playerBody.addEventListener("collide", (e) => {
-    const contactNormal = new CANNON.Vec3();
-    const contactEquation = e.contact.equations[0];
-    if (contactEquation) {
-        if (contactEquation.bi === playerBody) {
-            contactEquation.ni.negate(contactNormal);
-        } else {
-            contactNormal.copy(contactEquation.ni);
-        }
-        if (contactNormal.dot(new CANNON.Vec3(0, 1, 0)) > 0.5) {
-            canJump = true;
-        }
-    }
-});
+// [CAMBIO] Quitamos el listener "collide" antiguo que fallaba
+let canJump = false; 
+// Usaremos un Raycaster (rayo invisible) en la función animate para detectar el suelo
 
 // -------------------------------------------------
 // 4. CONSTRUCCIÓN DEL MAPA
@@ -311,7 +299,7 @@ roofBody.position.y = WALL_HEIGHT;
 world.addBody(roofBody);
 
 // -------------------------------------------------
-// 5. PORTERO (IRONMAN)
+// 5. PORTERO
 // -------------------------------------------------
 const keeperBody = new CANNON.Body({
     mass: 0, 
@@ -326,7 +314,7 @@ world.addBody(keeperBody);
 const loader = new OBJLoader();
 let keeperMesh = null;
 
-loader.load('../IronMan.obj', (obj) => {
+loader.load('../resources/objects/IronMan.obj', (obj) => {
     keeperMesh = obj;
     keeperMesh.scale.set(KEEPER_SCALE, KEEPER_SCALE, KEEPER_SCALE); 
     keeperMesh.position.set(0, 0, GOAL_Z_POS);
@@ -344,9 +332,9 @@ loader.load('../IronMan.obj', (obj) => {
 
 
 // -------------------------------------------------
-// 6. CARGA DE PELOTA Y DISPARO
+// 6. PELOTAS
 // -------------------------------------------------
-loader.load("../Ball.obj", (obj) => {
+loader.load("../resources/objects/Ball.obj", (obj) => {
     obj.traverse((child) => {
         if (child.isMesh) {
             ballGeometry = child.geometry;
@@ -370,7 +358,6 @@ function shootBall() {
     mesh.scale.set(0.5, 0.5, 0.5); 
     mesh.castShadow = true;
     
-    // [NUEVO] Propiedad para saber si esta bola ya ha marcado gol
     mesh.userData = { scored: false };
 
     scene.add(mesh);
@@ -418,9 +405,10 @@ document.addEventListener('keydown', (e) => {
         case 'KeyA': input.left = true; break;
         case 'KeyD': input.right = true; break;
         case 'Space': 
+            // El salto se ejecuta si el Raycaster dice que estamos tocando suelo
             if(canJump) {
                 playerBody.velocity.y = JUMP_FORCE; 
-                canJump = false;
+                canJump = false; // Importante: no volver a saltar hasta tocar suelo de nuevo
             }
             break;
     }
@@ -451,10 +439,34 @@ window.addEventListener('resize', () => {
 // -------------------------------------------------
 const clock = new THREE.Clock();
 
+// [NUEVO] Raycaster para el suelo
+const jumpRaycaster = new THREE.Raycaster();
+const jumpRayDown = new THREE.Vector3(0, -1, 0); // Vector hacia abajo
+
 function animate() {
     requestAnimationFrame(animate);
     const delta = Math.min(clock.getDelta(), 0.1);
     const time = clock.getElapsedTime(); 
+
+    // --- [NUEVO] LÓGICA DE SALTO ROBUSTA (RAYCASTING) ---
+    // Lanzamos un rayo desde la posición del jugador hacia abajo
+    jumpRaycaster.set(playerBody.position, jumpRayDown);
+    
+    // Comprobamos si choca con algún objeto de la escena (suelo, muros, portero...)
+    // playerRadius es 0.8, le damos un margen de 0.1 (0.9 total)
+    // Si la distancia es menor a 0.9, es que estamos tocando suelo.
+    const intersects = jumpRaycaster.intersectObjects(scene.children);
+    
+    // Asumimos que no podemos saltar hasta que el rayo diga lo contrario
+    canJump = false; 
+    
+    for (let i = 0; i < intersects.length; i++) {
+        // Ignoramos intersecciones lejanas
+        if (intersects[i].distance < playerRadius + 0.1) {
+            canJump = true;
+            break; // Ya encontramos suelo, no hace falta seguir buscando
+        }
+    }
 
     // --- ACTUALIZAR PORTERO ---
     if (keeperBody) {
@@ -493,35 +505,28 @@ function animate() {
     camera.position.copy(playerBody.position);
     camera.position.y += 2.2; 
 
-    // --- [NUEVO] DETECTOR DE GOLES ---
+    // --- DETECTOR DE GOLES ---
     for (let i = 0; i < ballBodies.length; i++) {
         const bBody = ballBodies[i];
         const bMesh = balls[i];
         
-        // Sincronizar posición visual
         bMesh.position.copy(bBody.position);
         bMesh.quaternion.copy(bBody.quaternion);
 
-        // Lógica de Gol:
-        // 1. No ha sido marcado antes
-        // 2. Ha cruzado la línea de portería en Z (GOAL_Z_POS - radio)
-        // 3. Está dentro del ancho de la portería (X)
-        // 4. Está debajo del larguero (Y)
         if (!bMesh.userData.scored && 
             bBody.position.z < GOAL_Z_POS - 0.5 && 
-            bBody.position.z > GOAL_Z_POS - NET_DEPTH && // Para no contar si sale por detrás
+            bBody.position.z > GOAL_Z_POS - NET_DEPTH && 
             bBody.position.x > -GOAL_WIDTH/2 && 
             bBody.position.x < GOAL_WIDTH/2 &&
             bBody.position.y < GOAL_HEIGHT) {
             
             score++;
             scoreDiv.innerHTML = 'GOLES: ' + score;
-            bMesh.userData.scored = true; // Marcar para no contarla 100 veces
-            
-            // Feedback visual: Cambiar color de la bola a verde
+            bMesh.userData.scored = true; 
             bMesh.material.color.setHex(0x00ff00);
         }
     }
+
     renderer.render(scene, camera);
 }
 animate();
