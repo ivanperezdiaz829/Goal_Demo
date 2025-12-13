@@ -1,5 +1,7 @@
 # **GOAL_DEMO**
 
+Enlace de la demo (CodeSandbox): https://wq7pql.csb.app/
+
 ## Índice
 
 - [Introducción](#introducción)
@@ -28,6 +30,8 @@ Como pilares fundamentales del proyecto se encuentran:
 En el transcurso de la práctica se han utilizado diferentes tecnologías para llegar al objetivo propuesto:
 
 - **VSCode:** El proyecto se ha realizado enteramente desde dicho IDE.
+
+- **CodeSandbox:** Se ha utilizado para la pasar el código desde VSCode y obtener el enlace de la demo.
 
 - **JavaScript:** Es el lenguaje de programación principal del proyecto. Además de HTML y CSS que han sido utilizados para la estructura del contenedor de la aplicación y la interfaz de usuario (UI).
 
@@ -76,6 +80,7 @@ En la siguiente imagen se puede acceder a un video corto de la demo en ejecució
     - https://makerworld.com/es/3d-models
     - https://chatgpt.com/
     - https://youtube.com/
+    - https://codesandbox.io
     - https://gemini.google.com
     - https://www.freepik.es/modelos-3d
     - https://www.opera.com/es/gx/gx-browser-nb?utm_id=Cj0KCQiA_8TJBhDNARIsAPX5qxTbhzch2oOJgCJGOIT1RSOMt5gNBAC29gT7BwtFcyKHMax9fmXzxOgaAhLlEALw_wcB&utm_medium=pa&utm_source=google&utm_campaign=OGX_ES_Search_ES_T1_V2&utm_content=635460379197&gad_source=1&gad_campaignid=18948233713&gclid=Cj0KCQiA_8TJBhDNARIsAPX5qxTbhzch2oOJgCJGOIT1RSOMt5gNBAC29gT7BwtFcyKHMax9fmXzxOgaAhLlEALw_wcB
